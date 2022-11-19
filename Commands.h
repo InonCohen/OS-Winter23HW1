@@ -129,6 +129,13 @@ class GetCurrDirCommand : public BuiltInCommand {
         void execute() override;
 };
 
+class FindAndReplaceCommand : public BuiltInCommand {
+        public:
+        explicit FindAndReplaceCommand(const char* cmd_line): BuiltInCommand(cmd_line){};
+        virtual ~FindAndReplaceCommand() {}
+        void execute() override;
+};
+
 class ShowPidCommand : public BuiltInCommand {
         public:
         explicit ShowPidCommand(const char* cmd_line): BuiltInCommand(cmd_line){};
