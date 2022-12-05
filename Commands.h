@@ -15,6 +15,7 @@
 #include <utime.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <sys/resource.h>
 
 
 #define COMMAND_ARGS_MAX_LENGTH (200)
@@ -127,6 +128,20 @@ class GetCurrDirCommand : public BuiltInCommand {
         explicit GetCurrDirCommand(const char* cmd_line): BuiltInCommand(cmd_line){};
         virtual ~GetCurrDirCommand() {}
         void execute() override;
+};
+
+class FindAndReplaceCommand : public BuiltInCommand {
+        public:
+        explicit FindAndReplaceCommand(const char* cmd_line): BuiltInCommand(cmd_line){};
+        virtual ~FindAndReplaceCommand() {}
+        void execute() override;
+};
+
+class SetCoreCommand : public BuiltInCommand {
+public:
+    explicit SetCoreCommand(const char* cmd_line): BuiltInCommand(cmd_line){};
+    virtual ~SetCoreCommand() {}
+    void execute() override;
 };
 
 class ShowPidCommand : public BuiltInCommand {

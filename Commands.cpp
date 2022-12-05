@@ -1,5 +1,4 @@
 #include "Commands.h"
-
 using namespace std;
 
 #if 0
@@ -34,7 +33,6 @@ string _trim(const string& s)
 {
     return _rtrim(_ltrim(s));
 }
-
 
 int _parseCommandLine(const char* cmd_line, char** args) {
     FUNC_ENTRY()
@@ -189,7 +187,6 @@ char* Command::getOriginalCommand() const{
 
 
 
-
 /////////////// BUILT_IN COMMANDS FUNCTIONS ///////////////
 
 BuiltInCommand::~BuiltInCommand() noexcept {};
@@ -237,18 +234,110 @@ void ChangeDirCommand::execute() {
     }
 }
 
-
 void GetCurrDirCommand::execute() {
     char* curr_dir = get_current_dir_name();
     cout << curr_dir << endl;
     free(curr_dir);
 }
 
+void FindAndReplaceCommand::execute(){
+    if(getParsedLength()!=4){
+        cerr << "smash error: fare: invalid arguments" << endl;
+        return;
+    }
+    const char* file_name = getParsed()[1];
+    fstream file = fstream(file_name);
+    if(!file){
+        cerr << "smash error: open failed: No such file or directory" << endl;
+        return;
+    }
+    char* old_word = getParsed()[2];
+    int old_word_length = strlen(old_word);
+    char* new_word = getParsed()[3];
+    int new_word_length = strlen(new_word);
+    string file_string;
+    for (char ch; file.get(ch); file_string.push_back(ch));
+    file.close();
+    auto pos = file_string.find(old_word);
+    int replacements_counter = 0;
+    while(pos != std::string::npos)
+    {
+        replacements_counter++;
+        file_string.replace(pos, old_word_length, new_word);
+        if(pos+new_word_length>=file_string.length()){
+            break;
+        }
+        pos = file_string.find(old_word, pos+new_word_length);
+    }
+    struct rlimit file_limits;
+    getrlimit(RLIMIT_FSIZE, &file_limits);
+    int required = file_string.length();
+    if((unsigned int)required > file_limits.rlim_cur){
+//        perror("smash error: File size limit exceeded");
+        return;
+    }
+    const char* new_file_temp_name="newFareNameFDTempFile.txt";
+    int new_fd = open(new_file_temp_name, O_RDWR|O_CREAT|O_TRUNC,0777);
+    const char* ch_str = file_string.c_str();
+    int written = 0, curr = 0;
+    while(written<required){
+        curr =  write(new_fd, ch_str,required);
+        if(curr <= 0){
+            perror("smash error: write failed");
+            close(new_fd);
+            remove(new_file_temp_name);
+            return;
+        }
+        written+=curr;
+    }
+    close(new_fd);
+    rename(new_file_temp_name,file_name);
+    cout <<  "replaced " << replacements_counter << " instances of the string \""<< old_word <<"\"" << endl;
+}
+
+void SetCoreCommand::execute() {
+    if(getParsedLength()!=3){
+        cerr << "smash error: setcore: invalid arguments" << endl;
+        return;
+    }
+    string job_str = getParsed()[1];
+    int job_id = 0;
+    try {
+        job_id = stoi(job_str);
+    }
+    catch (const exception &e) {// check if valid
+        cerr << "smash error: setcore: invalid arguments" << endl;
+        return;
+    }
+    char* core_str = getParsed()[2];
+    int core_number;
+    try {
+        core_number = stoi(core_str);
+    }
+    catch (const exception &e) {// check if valid
+        cerr << "smash error: setcore: invalid arguments" << endl;
+        return;
+    }
+    int available_cores = sysconf(_SC_NPROCESSORS_ONLN);
+    if(available_cores<=core_number){
+        cerr << "smash error: setcore: invalid core number" << endl;
+        return;
+    }
+    JobEntry *job_to_setcore = SmallShell::getInstance().getJobsList().getJobById(job_id);
+    if (job_to_setcore == nullptr) {
+        cerr << "smash error: setcore: job-id " << job_id << " does not exist" << endl;
+        return;
+    }
+    pid_t pid_to_setcore = job_to_setcore->getPid();
+    cpu_set_t set;
+    CPU_ZERO(&set);
+    CPU_SET(core_number, &set);
+    sched_setaffinity(pid_to_setcore, sizeof(set), &set);
+}
 
 void ShowPidCommand::execute() {
     cout << "smash pid is " << getpid() << endl;
 }
-
 
 void ChangePromptCommand::execute(){
     string new_prompt;
@@ -304,7 +393,6 @@ void KillCommand::execute() {
         cout << "signal number " << signum << " was sent to pid " << pid_to_kill << endl;
     }
 }
-
 
 void BackgroundCommand::execute() {
     SmallShell& smash = SmallShell::getInstance();
@@ -484,7 +572,6 @@ void ExternalCommand::execute() {
         }
     }
 }
-
 
 /////////////// SPECIAL COMMANDS FUNCTIONS ///////////////
 /**
@@ -891,7 +978,6 @@ void JobEntry:: resetTime(){
     creation_time = time(NULL);
 }
 
-
 bool JobEntry::isStopped() const{
     return stopped;
 }
@@ -926,7 +1012,6 @@ ostream& operator<<(ostream& os, const JobEntry& job){
     os << endl;
     return os;
 }
-
 
 
 ////////////// JOBS LIST FUNCTIONS ///////////////
@@ -1175,7 +1260,6 @@ JobEntry* SmallShell::getMaxStoppedJob() const{
     return max_stopped_job;
 }
 
-
 int SmallShell::moveToBG(JobEntry* new_bg){
     if(new_bg == nullptr ||new_bg->isFinished() ){
         return -1;
@@ -1191,7 +1275,6 @@ int SmallShell::moveToBG(JobEntry* new_bg){
     return 0;
 //    new_bg->getCommand()->execute();//need to be SIGCONT
 }
-
 
 int SmallShell::moveToFG(JobEntry* new_fg){
     if(new_fg == nullptr || new_fg->isFinished() ){
@@ -1249,7 +1332,6 @@ int SmallShell::getMaxJobID() const{
     return jobs_list->getMaxJobId();
 }
 
-
 Command* SmallShell::CreateCommand(const char* cmd_line) {
     string cmd_s = _trim(cmd_line);
     if (cmd_s == ""){
@@ -1270,6 +1352,12 @@ Command* SmallShell::CreateCommand(const char* cmd_line) {
     }
     if(first_word == "chprompt") { //built-in command
         return new ChangePromptCommand(cmd_line);
+    }
+    if(first_word == "fare") { //built-in command
+        return new FindAndReplaceCommand(cmd_line);
+    }
+    if(first_word == "setcore") { //built-in command
+        return new SetCoreCommand(cmd_line);
     }
     if(first_word == "cd") { //built-in command
         return new ChangeDirCommand(cmd_line);
@@ -1349,11 +1437,9 @@ TimedJobEntry::TimedJobEntry(time_t alarm_time, Command *command, pid_t pid, boo
     SmallShell::getInstance().getJobsList().updateMax();
 }
 
-
 time_t TimedJobEntry::getAlarmTime() {
     return alarm_time;
 }
-
 
 
 ////////////// TIMED JOBS LIST FUNCTIONS ///////////////
@@ -1474,12 +1560,7 @@ void TimedJobsList::killAllJobs(){
 }
 
 
-
-
-
 //////////////////////////////
-
-
 
 
 char* Command::getTimedCommand(const char* cmd_line){// caller must free the returned value
@@ -1497,12 +1578,9 @@ void Command::setTime(int time_to_set) {
     cmd_alarm_time = time_to_set;
 }
 
-
 int Command::getTime() {
     return cmd_alarm_time;
 }
-
-
 
 const char* Command::getTimeoutCommand() const{
     return timeout_command;
@@ -1511,7 +1589,6 @@ const char* Command::getTimeoutCommand() const{
 void Command::setTimedJobId(int id) {
     timed_job_id = id;
 }
-
 
 bool Command::isTimed() {
     return timed;
@@ -1557,11 +1634,9 @@ void TimeoutCommand::execute() {
     }
 }
 
-
 std::list<TimeoutCommand*> SmallShell::getTimeoutCommandsList() {
     return timeouts;
 }
-
 
 void Command::setTimed(bool timed_status){
     timed = timed_status;
