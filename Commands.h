@@ -115,7 +115,6 @@ class RedirectionCommand : public Command {
         void execute() override;
 };
 
-
 class ChangeDirCommand : public BuiltInCommand {
         public:
         explicit ChangeDirCommand(const char* cmd_line): BuiltInCommand(cmd_line){};
@@ -165,7 +164,6 @@ class JobsCommand : public BuiltInCommand {
         void execute() override;
 };
 
-
 class KillCommand : public BuiltInCommand {
         // TODO: Add your data members
         public:
@@ -198,20 +196,6 @@ class QuitCommand : public BuiltInCommand {
         void execute() override;
 };
 
-class TailCommand : public BuiltInCommand {
-    public:
-    explicit TailCommand(const char* cmd_line): BuiltInCommand(cmd_line){};
-    virtual ~TailCommand() = default;
-    void execute() override;
-};
-
-class TouchCommand : public BuiltInCommand {
-public:
-    explicit TouchCommand(const char* cmd_line): BuiltInCommand(cmd_line){};
-    virtual ~TouchCommand() = default;
-    void execute() override;
-};
-
 class TimeoutCommand : public Command {
     int alarm_time;
     Command* timed_cmd;
@@ -220,7 +204,6 @@ public:
     virtual ~TimeoutCommand() {};
     void execute() override;
 };
-
 
 class JobEntry {
     int id;
@@ -342,7 +325,6 @@ public:
     void removeFinishedJobs();
 
 };
-
 
 class SmallShell {
 private:
